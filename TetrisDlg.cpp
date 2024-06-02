@@ -153,9 +153,9 @@ void CTetrisDlg::OnPaint()
 	}
 }
 
-void CTetrisDlg::DrawTetramino(bool a_Show)
+void CTetrisDlg::Draw(const Tetramino& tetramino, bool a_Show)
 {
-	for (const Point& point : m_Tetramino.m_points)
+	for (const Point& point : tetramino.m_points)
 	{
 		m_Static[point.m_x][point.m_y].ShowWindow(a_Show ? SW_SHOW : SW_HIDE);
 	}
@@ -165,29 +165,35 @@ void CTetrisDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	switch (m_State)
 	{
+	case State_t::GameOver:
+		return;
 	case State_t::Empty:
 		m_Tetramino.Init();
-		if (!m_Tetramino.IsValid())
+		Draw(m_Tetramino, true);
+		if (!m_Tetramino.IsValid(*this))
 		{
 			m_State = State_t::GameOver;
 			return;
 		}
+		m_State = State_t::Fall;
 		break;
 	case State_t::Fall:
+		const Tetramino backup = m_Tetramino;
+		m_Tetramino.MoveDown();
+		if (m_Tetramino.IsValid(*this))
+		{
+			Draw(backup, false);
+			Draw(m_Tetramino, true);
+			break;
+		}
+
+		for (const Point& point : backup.m_points)
+		{
+			m_Fallen.insert(point);
+		}
+		m_State = State_t::Empty;
 		break;
-	case State_t::GameOver:
-		return;
 	}
-
-	static int x = 0;
-
-	if (x < 10)
-	{
-		CStatic& cell = m_Static[x][x];
-		cell.ShowWindow(TRUE);
-	}
-
-	x++;
 }
 
 // Система вызывает эту функцию для получения отображения курсора при перемещении

@@ -37,15 +37,7 @@ public:
     Point m_points[4];
 
     //
-    bool IsValid() const
-    {
-        for (const Point& point : m_points)
-        {
-            if (!point.isValid())
-                return false;
-        }
-        return true;
-    }
+    bool IsValid(const CTetrisDlg& dlg) const;
 
     void Init()
     {

@@ -29,8 +29,7 @@ protected:
 	CBitmap m_Bitmap;
 	CButton m_GroupBox;
 
-	Tetramino m_Tetramino;
-	std::set<Point> m_Fallen;
+	Tetramino m_Tetramino;	
 
 	enum class State_t
 	{
@@ -40,7 +39,7 @@ protected:
 	} m_State = State_t::Empty;
 
 
-	void DrawTetramino(bool a_Show);
+	void Draw(const Tetramino& tetramino, bool a_Show);
 
 	// Созданные функции схемы сообщений
 	virtual BOOL OnInitDialog();
@@ -51,5 +50,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	std::set<Point> m_Fallen;
+
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 };
