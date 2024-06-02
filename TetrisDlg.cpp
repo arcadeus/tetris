@@ -161,7 +161,70 @@ void CTetrisDlg::Draw(const Tetramino& tetramino, bool a_Show)
 	}
 }
 
-void CTetrisDlg::OnTimer(UINT_PTR nIDEvent)
+afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		switch (pMsg->wParam)
+		{
+		case VK_LEFT:
+		case VK_RIGHT:
+			if (m_State == State_t::Fall)
+			{
+				const Tetramino backup = m_Tetramino;
+				m_Tetramino.MoveAside(pMsg->wParam == VK_RIGHT);
+				if (m_Tetramino.IsValid(*this))
+				{
+					Draw(backup, false);
+					Draw(m_Tetramino, true);
+				}
+				else
+					m_Tetramino = backup;
+			}
+			break;		
+		case VK_UP:
+			if (m_State == State_t::Fall)
+			{
+				const Tetramino backup = m_Tetramino;
+				m_Tetramino.Rotate();
+				if (m_Tetramino.IsValid(*this))
+				{
+					Draw(backup, false);
+					Draw(m_Tetramino, true);
+				}
+				else
+					m_Tetramino = backup;
+			}
+			break;		
+		case VK_DOWN:
+			if (m_State == State_t::Fall)
+			{
+				for (;;)
+				{
+					const Tetramino backup = m_Tetramino;
+					m_Tetramino.MoveDown();
+					if (m_Tetramino.IsValid(*this))
+					{
+						Draw(backup, false);
+						Draw(m_Tetramino, true);
+					}
+					else
+					{
+						m_Tetramino = backup;
+						OnTimer((UINT_PTR)nullptr);
+						break;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	return CDialog::PreTranslateMessage(pMsg);
+
+}
+
+void CTetrisDlg::OnTimer(UINT_PTR)
 {
 	switch (m_State)
 	{

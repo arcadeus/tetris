@@ -94,5 +94,43 @@ public:
             point.m_y++;
         }
     }
+
+    //
+    void MoveAside(bool to_right)
+    {
+        for (Point& point : m_points)
+        {
+            if (to_right)
+                point.m_x++;
+            else
+                point.m_x--;
+        }
+    }
+
+    //
+    void Rotate()
+    {
+        if (m_Type == Type_t::O)
+            return;
+
+        for (int i = 1; i < 4; i++)
+        {
+            Point& point = m_points[i];
+            Rotate(point);
+        }
+    }
+
+    //
+    void Rotate(Point& point)
+    {
+        const int old_x = point.m_x - m_points[0].m_x;
+        const int old_y = point.m_y - m_points[0].m_y;
+
+        const int new_x = -old_y;
+        const int new_y = old_x;
+
+        point.m_x = m_points[0].m_x + new_x;
+        point.m_y = m_points[0].m_y + new_y;
+    }
 };
 
