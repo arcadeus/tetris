@@ -14,6 +14,6 @@ public:
 
     bool operator< (const Point& other) const
     {
-        return m_x < other.m_x || m_x == other.m_x && m_y < other.m_y;
+        return m_y > other.m_y || m_y == other.m_y && m_x < other.m_x;
     }
 };
