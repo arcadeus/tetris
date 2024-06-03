@@ -41,7 +41,7 @@ public:
 
     void Init()
     {
-        std::srand(std::time(nullptr)); // use current time as seed for random generator
+        std::srand((int)std::time(nullptr)); // use current time as seed for random generator
         m_Type = (Type_t)(std::rand() % 7);
 
         m_points[0] = { 5, 0 };     //     0

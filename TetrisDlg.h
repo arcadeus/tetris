@@ -44,7 +44,7 @@ protected:
 	} m_State = State_t::Empty;
 
 
-	void Draw(const const Point& point, bool a_Show);
+	void Draw(const Point& point, bool a_Show);
 	void Draw(const Tetramino& tetramino, bool a_Show);
 	void Draw(Fallen_t fallen, bool a_Show);
 

@@ -41,26 +41,6 @@ BOOL CTetrisDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// Добавление пункта "О программе..." в системное меню.
-
-	// IDM_ABOUTBOX должен быть в пределах системной команды.
-	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
-	ASSERT(IDM_ABOUTBOX < 0xF000);
-
-	CMenu* pSysMenu = GetSystemMenu(FALSE);
-	if (pSysMenu != nullptr)
-	{
-		BOOL bNameValid;
-		CString strAboutMenu;
-		bNameValid = strAboutMenu.LoadString(IDS_ABOUTBOX);
-		ASSERT(bNameValid);
-		if (!strAboutMenu.IsEmpty())
-		{
-			pSysMenu->AppendMenu(MF_SEPARATOR);
-			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
-		}
-	}
-
 	// Задает значок для этого диалогового окна.  Среда делает это автоматически,
 	//  если главное окно приложения не является диалоговым
 	SetIcon(m_hIcon, TRUE);			// Крупный значок
@@ -154,7 +134,7 @@ void CTetrisDlg::OnPaint()
 	}
 }
 
-void CTetrisDlg::Draw(const const Point& point, bool a_Show)
+void CTetrisDlg::Draw(const Point& point, bool a_Show)
 {
 	m_Static[point.m_x][point.m_y].ShowWindow(a_Show ? SW_SHOW : SW_HIDE);
 }
@@ -262,6 +242,9 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;		
 		case VK_DOWN:
+			OnTimer((UINT_PTR)nullptr);
+			break;
+		case VK_RETURN:
 			if (m_State == State_t::Fall)
 			{
 				for (;;)
@@ -281,7 +264,7 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 					}
 				}
 			}
-			break;
+			return FALSE;
 		}
 	}
 
