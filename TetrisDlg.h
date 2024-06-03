@@ -21,6 +21,11 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// поддержка DDX/DDV
 
+public:
+	using Fallen_t = std::set<Point>;
+	Fallen_t m_Fallen;
+
+	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 
 // Реализация
 protected:
@@ -39,7 +44,11 @@ protected:
 	} m_State = State_t::Empty;
 
 
+	void Draw(const const Point& point, bool a_Show);
 	void Draw(const Tetramino& tetramino, bool a_Show);
+	void Draw(Fallen_t fallen, bool a_Show);
+
+	void DropFullLines();
 
 	// Созданные функции схемы сообщений
 	virtual BOOL OnInitDialog();
@@ -50,8 +59,4 @@ protected:
 	afx_msg void OnTimer(UINT_PTR);
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
-public:
-	std::set<Point> m_Fallen;
-
-	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 };

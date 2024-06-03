@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "framework.h"
+#include <vector>
 #include "Tetris.h"
 #include "TetrisDlg.h"
 #include "afxdialogex.h"
@@ -153,11 +154,75 @@ void CTetrisDlg::OnPaint()
 	}
 }
 
+void CTetrisDlg::Draw(const const Point& point, bool a_Show)
+{
+	m_Static[point.m_x][point.m_y].ShowWindow(a_Show ? SW_SHOW : SW_HIDE);
+}
+
 void CTetrisDlg::Draw(const Tetramino& tetramino, bool a_Show)
 {
 	for (const Point& point : tetramino.m_points)
 	{
-		m_Static[point.m_x][point.m_y].ShowWindow(a_Show ? SW_SHOW : SW_HIDE);
+		Draw(point, a_Show);
+	}
+}
+
+void CTetrisDlg::Draw(Fallen_t fallen, bool a_Show)
+{
+	for (const Point& point : fallen)
+	{
+		Draw(point, a_Show);
+	}
+}
+
+void CTetrisDlg::DropFullLines()
+{
+	constexpr int OLD_Y_START = -1;
+	int old_y = OLD_Y_START;
+	int shift_y = 0;
+	std::vector<int> buffer;
+
+	Fallen_t new_Fallen;
+
+	for (const Point& point : m_Fallen)
+	{
+		if (old_y == OLD_Y_START)
+			old_y = point.m_y;
+
+		if (old_y != point.m_y)
+		{
+			if (buffer.size() == 10)
+				shift_y++;
+			else
+			{
+				for (int x : buffer)
+				{
+					new_Fallen.insert({ x , old_y + shift_y });
+				}
+			}
+			
+			buffer.clear();
+			old_y = point.m_y;
+		}
+
+		buffer.push_back(point.m_x);
+	}
+
+	if (buffer.size() == 10)
+		shift_y++;
+	else
+	{
+		for (int x : buffer)
+		{
+			new_Fallen.insert({ x , old_y + shift_y });
+		}
+	}
+
+	if (shift_y > 0)
+	{
+		Draw(m_Fallen, false);
+		m_Fallen = new_Fallen;
+		Draw(m_Fallen, true);		
 	}
 }
 
@@ -254,6 +319,8 @@ void CTetrisDlg::OnTimer(UINT_PTR)
 		{
 			m_Fallen.insert(point);
 		}
+		DropFullLines();
+
 		m_State = State_t::Empty;
 		break;
 	}
