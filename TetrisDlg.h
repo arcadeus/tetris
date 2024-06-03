@@ -25,7 +25,7 @@ public:
 	using Fallen_t = std::set<Point>;
 	Fallen_t m_Fallen;
 
-	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnTcnSelchangeTab(NMHDR* pNMHDR, LRESULT* pResult);
 
 // Реализация
 protected:

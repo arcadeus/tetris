@@ -30,7 +30,7 @@ BEGIN_MESSAGE_MAP(CTetrisDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-//	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CTetrisDlg::OnTcnSelchangeTab1)
+	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB, &CTetrisDlg::OnTcnSelchangeTab)
 	ON_WM_TIMER()
 	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
@@ -49,26 +49,14 @@ BOOL CTetrisDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Крупный значок
 	SetIcon(m_hIcon, FALSE);		// Мелкий значок
 
-	// TODO: добавьте дополнительную инициализацию
-
-	/*
-	{
-		CTabCtrl* tabCtrl = (CTabCtrl*)GetDlgItem(IDC_TAB1);
-
-		TCITEM tcItem;
-		tcItem.mask = TCIF_TEXT;
-
-		tcItem.pszText = _T("Tab #1 aaaa");
-		tabCtrl->InsertItem(0, &tcItem);
-
-		tcItem.pszText = _T("Tab #2 bbbb");
-		tabCtrl->InsertItem(0, &tcItem);
-	}*/
-
 	int id = IDC_EXTRA_EDIT;
 
 	constexpr int size = 16;
 	constexpr int delta = 2;
+
+	CRect m_rec(45, 38, 52 + 10 * (size + delta), 52 + 20 * (size + delta));
+	m_GroupBox.Create(L"", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, m_rec,
+		this, IDC_GROUP_BOX);
 
 	{
 		m_Bitmap.LoadBitmap(IDB_BITMAP1);		
@@ -79,24 +67,18 @@ BOOL CTetrisDlg::OnInitDialog()
 			{
 				CStatic& cell = m_Static[x][y];
 
-				const int _x = 50 + x * (size + delta);
-				const int _y = 50 + y * (size + delta);
+				const int _x = 4 + x * (size + delta);
+				const int _y = 11 + y * (size + delta);
 
 				CRect rect(_x, _y, _x + size, _y + size);
 
 				int style = WS_CHILD | WS_BORDER | SS_BITMAP | SS_CENTERIMAGE;
 
-				//				if ((x + y) % 2)					style |= WS_VISIBLE;
-
-				cell.Create(L"", style, rect, this, id++);
+				cell.Create(L"", style, rect, &m_GroupBox, id++);
 				cell.SetBitmap(m_Bitmap);
 			}
 		}
 	}
-
-	CRect m_rec(45, 38, 52 + 10 * (size + delta), 52 + 20 * (size + delta));
-	m_GroupBox.Create(L"", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, m_rec,
-		this, IDC_GROUP_BOX);
 
 	auto m_nTimer = SetTimer(id++, 1000, 0);
 
@@ -107,6 +89,24 @@ BOOL CTetrisDlg::OnInitDialog()
 	m_FontMedium.Detach();
 	m_FontMedium.CreateFont(24, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
 	GetDlgItem(IDC_HELP)->SetFont(&m_FontMedium, TRUE);
+
+	{
+		CTabCtrl* tabCtrl = (CTabCtrl*)GetDlgItem(IDC_TAB);
+
+		TCITEM tcItem;
+		tcItem.mask = TCIF_TEXT;
+
+		tcItem.pszText = _T("Results");
+		tabCtrl->InsertItem(0, &tcItem);
+
+		tcItem.pszText = _T("Game");
+		tabCtrl->InsertItem(0, &tcItem);
+
+		HWND hwnd = GetDlgItem(IDC_TAB)->m_hWnd;
+		TabCtrl_SetCurSel(hwnd, 0);
+		LRESULT result;
+		OnTcnSelchangeTab(nullptr, &result);
+	}
 
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
@@ -138,6 +138,11 @@ HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	if (ID == IDC_HELP)
 	{
 		pDC->SetTextColor(RGB(200, 200, 200));
+		pDC->SetBkMode(TRANSPARENT);
+	}
+
+	if (ID == IDC_TAB)
+	{
 		pDC->SetBkMode(TRANSPARENT);
 	}
 
@@ -306,6 +311,16 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 				}
 			}
 			return FALSE;
+		case VK_TAB:		
+			if (::GetKeyState(VK_CONTROL) & 0x8000)
+			{
+				HWND hwnd = GetDlgItem(IDC_TAB)->m_hWnd;
+				const int i = TabCtrl_GetCurSel(hwnd);
+				TabCtrl_SetCurSel(hwnd, 1 - i);
+				LRESULT result;
+				OnTcnSelchangeTab(nullptr, &result);
+			}
+			break;
 		}
 	}
 
@@ -377,8 +392,14 @@ HCURSOR CTetrisDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CTetrisDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
+void CTetrisDlg::OnTcnSelchangeTab(NMHDR*, LRESULT* pResult)
 {
-	// TODO: добавьте свой код обработчика уведомлений
+	auto tab = TabCtrl_GetCurSel(GetDlgItem(IDC_TAB)->m_hWnd);
+	//MessageBoxA(NULL, "AAA", std::to_string(i).c_str(), MB_OK);
+
+	GetDlgItem(IDC_GROUP_BOX)->ShowWindow(tab == 0);
+	GetDlgItem(IDC_SUMMARY)->ShowWindow(tab == 0);
+	GetDlgItem(IDC_HELP)->ShowWindow(tab == 0);
+
 	*pResult = 0;
 }
