@@ -31,8 +31,10 @@ BEGIN_MESSAGE_MAP(CTetrisDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 //	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CTetrisDlg::OnTcnSelchangeTab1)
 	ON_WM_TIMER()
+	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
+#define IDC_GROUP_BOX  12344
 #define IDC_EXTRA_EDIT 12345
 
 // Обработчики сообщений CTetrisDlg
@@ -93,7 +95,7 @@ BOOL CTetrisDlg::OnInitDialog()
 
 	CRect m_rec(45, 38, 52 + 10 * (size + delta), 52 + 20 * (size + delta));
 	m_GroupBox.Create(L"", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, m_rec,
-		this, id++);
+		this, IDC_GROUP_BOX);
 
 	auto m_nTimer = SetTimer(id++, 1000, 0);
 
@@ -103,6 +105,21 @@ BOOL CTetrisDlg::OnInitDialog()
 void CTetrisDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	CDialogEx::OnSysCommand(nID, lParam);
+}
+
+HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	if (pWnd->GetDlgCtrlID() == IDC_GROUP_BOX) //group box's id
+	{
+		CPoint ul(0, 6);
+		CRect rect;
+		pWnd->GetWindowRect(&rect);
+		CPoint lr((rect.right - rect.left - 2), (rect.bottom - rect.top - 2));
+		pDC->FillSolidRect(CRect(ul, lr), RGB(255, 255, 255));
+		pWnd->SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	}
+
+	return (HBRUSH)GetStockObject(DKGRAY_BRUSH);
 }
 
 // При добавлении кнопки свертывания в диалоговое окно нужно воспользоваться приведенным ниже кодом,

@@ -54,6 +54,7 @@ protected:
 	virtual BOOL OnInitDialog();
 	//HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+	HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnPaint();
 	afx_msg BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnTimer(UINT_PTR);
