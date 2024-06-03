@@ -5,6 +5,7 @@
 #include "pch.h"
 #include "framework.h"
 #include <vector>
+#include <string>
 #include "Tetris.h"
 #include "TetrisDlg.h"
 #include "afxdialogex.h"
@@ -99,6 +100,14 @@ BOOL CTetrisDlg::OnInitDialog()
 
 	auto m_nTimer = SetTimer(id++, 1000, 0);
 
+	m_FontBig.Detach();
+	m_FontBig.CreateFont(48, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
+	GetDlgItem(IDC_SUMMARY)->SetFont(&m_FontBig, TRUE);
+
+	m_FontMedium.Detach();
+	m_FontMedium.CreateFont(24, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
+	GetDlgItem(IDC_HELP)->SetFont(&m_FontMedium, TRUE);
+
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
 
@@ -109,7 +118,8 @@ void CTetrisDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
-	if (pWnd->GetDlgCtrlID() == IDC_GROUP_BOX) //group box's id
+	const auto ID = pWnd->GetDlgCtrlID();
+	if (ID == IDC_GROUP_BOX)
 	{
 		CPoint ul(0, 6);
 		CRect rect;
@@ -117,6 +127,18 @@ HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		CPoint lr((rect.right - rect.left - 2), (rect.bottom - rect.top - 2));
 		pDC->FillSolidRect(CRect(ul, lr), RGB(255, 255, 255));
 		pWnd->SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	}
+
+	if (ID == IDC_SUMMARY)
+	{
+		pDC->SetTextColor(RGB(255, 255, 0));
+		pDC->SetBkMode(TRANSPARENT);
+	}
+
+	if (ID == IDC_HELP)
+	{
+		pDC->SetTextColor(RGB(200, 200, 200));
+		pDC->SetBkMode(TRANSPARENT);
 	}
 
 	return (HBRUSH)GetStockObject(DKGRAY_BRUSH);
@@ -219,7 +241,9 @@ void CTetrisDlg::DropFullLines()
 	{
 		Draw(m_Fallen, false);
 		m_Fallen = new_Fallen;
-		Draw(m_Fallen, true);		
+		Draw(m_Fallen, true);
+
+		m_Score += shift_y;
 	}
 }
 
@@ -259,7 +283,7 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;		
 		case VK_DOWN:
-			OnTimer((UINT_PTR)nullptr);
+			OnTimerImpl();
 			break;
 		case VK_RETURN:
 			if (m_State == State_t::Fall)
@@ -276,7 +300,7 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 					else
 					{
 						m_Tetramino = backup;
-						OnTimer((UINT_PTR)nullptr);
+						OnTimerImpl();
 						break;
 					}
 				}
@@ -289,7 +313,7 @@ afx_msg BOOL CTetrisDlg::PreTranslateMessage(MSG* pMsg)
 
 }
 
-void CTetrisDlg::OnTimer(UINT_PTR)
+void CTetrisDlg::OnTimerImpl()
 {
 	switch (m_State)
 	{
@@ -326,14 +350,32 @@ void CTetrisDlg::OnTimer(UINT_PTR)
 	}
 }
 
+void CTetrisDlg::OnTimer(UINT_PTR)
+{
+	OnTimerImpl();
+
+	if (m_State != State_t::GameOver)
+		m_Duration++;
+
+	std::wstring summary = L"Score: " + std::to_wstring(m_Score * 100) + L"\r\n";
+
+	std::wstring sec = std::to_wstring(m_Duration % 60);
+	if (sec.length() < 2)
+		sec = L'0' + sec;
+	summary += L"Duration: " + std::to_wstring(m_Duration / 60) + L':' + sec + L"\r\n";
+
+	if (m_State == State_t::GameOver)
+		summary += L"Game Over!";
+
+	GetDlgItem(IDC_SUMMARY)->SetWindowText(summary.c_str());
+}
+
 // Система вызывает эту функцию для получения отображения курсора при перемещении
 //  свернутого окна.
 HCURSOR CTetrisDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
-
-
 
 void CTetrisDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
 {

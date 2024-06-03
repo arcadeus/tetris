@@ -33,8 +33,10 @@ protected:
 	CStatic m_Static[10][20];
 	CBitmap m_Bitmap;
 	CButton m_GroupBox;
+	CFont m_FontBig;
+	CFont m_FontMedium;
 
-	Tetramino m_Tetramino;	
+	Tetramino m_Tetramino;
 
 	enum class State_t
 	{
@@ -43,6 +45,9 @@ protected:
 		GameOver
 	} m_State = State_t::Empty;
 
+	// Game summary props
+	int m_Score = 0;
+	int m_Duration = 0;
 
 	void Draw(const Point& point, bool a_Show);
 	void Draw(const Tetramino& tetramino, bool a_Show);
@@ -57,6 +62,7 @@ protected:
 	HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnPaint();
 	afx_msg BOOL PreTranslateMessage(MSG* pMsg);
+	void OnTimerImpl();
 	afx_msg void OnTimer(UINT_PTR);
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
