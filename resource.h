@@ -9,7 +9,7 @@
 #define IDB_BITMAP1                     130
 #define IDC_FRAME                       1003
 #define IDC_SUMMARY                     1004
-#define IDC_HELP                        1005
+#define IDC_HELP_LABEL                  1005
 #define IDC_TAB                         1006
 
 // Next default values for new objects

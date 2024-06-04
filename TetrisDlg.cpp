@@ -6,6 +6,7 @@
 #include "framework.h"
 #include <vector>
 #include <string>
+#include <filesystem>
 #include <mysql.h> 
 #include "Tetris.h"
 #include "TetrisDlg.h"
@@ -39,6 +40,11 @@ END_MESSAGE_MAP()
 #define IDC_GROUP_BOX  12344
 #define IDC_EXTRA_EDIT 12345
 
+void CTetrisDlg::ErrMsg(const std::string& errmsg) const
+{
+	MessageBoxA(m_hWnd, errmsg.c_str(), "Error", MB_ICONERROR);
+}
+
 // Обработчики сообщений CTetrisDlg
 
 BOOL CTetrisDlg::OnInitDialog()
@@ -47,6 +53,34 @@ BOOL CTetrisDlg::OnInitDialog()
 
 	////////////////////////////////
 	{
+		// Get path to executable
+		std::filesystem::path path;
+	#ifdef _WIN32
+		wchar_t szPath[MAX_PATH] = { 0 };
+		GetModuleFileNameW(NULL, szPath, MAX_PATH);
+		path = szPath;
+	#else
+		char result[PATH_MAX];
+		ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+		path = std::string(result, (count > 0) ? count : 0);
+	#endif
+
+		// Build path to www/ & config file
+		path = path.parent_path();
+		path.append("config.txt");
+
+		// Open config file with simpleini library
+		const SI_Error rc = m_config.LoadFile(path.c_str());
+		if (rc < 0)
+		{
+			std::string errmsg = "Failed to read " + path.generic_string() + ": " + std::to_string(rc);
+			ErrMsg(errmsg);
+			exit(2);
+		}
+		assert(rc == SI_OK);
+	}
+
+	{
 		MYSQL* conn;
 
 		if ((conn = mysql_init(NULL)) == NULL)
@@ -54,14 +88,46 @@ BOOL CTetrisDlg::OnInitDialog()
 			fprintf(stderr, "Could not init DB\n");
 			return EXIT_FAILURE;
 		}
-		if (mysql_real_connect(conn, "localhost", "root", "root123", "mysql", 0, NULL, 0) == NULL)
+
+		const std::string host = m_config.GetValue("mysql", "host", "localhost");
+		const std::string user = m_config.GetValue("mysql", "user", "");
+		const std::string pass = m_config.GetValue("mysql", "pass", "");
+		const std::string db   = m_config.GetValue("mysql", "db",   "tetris");
+
+		if (mysql_real_connect(conn, host.c_str(), user.c_str(), pass.c_str(), "mysql", 0, NULL, 0) == NULL)
 		{
-			fprintf(stderr, "DB Connection Error\n");
+			ErrMsg("DB Connection Error");
 			return EXIT_FAILURE;
 		}
+		if (mysql_query(conn, ("USE " + db).c_str()) != 0)
+		{
+			if (mysql_query(conn, ("CREATE DATABASE " + db).c_str()) != 0)
+			{
+				ErrMsg("Failed to create database " + db);
+				return EXIT_FAILURE;
+			}
+			
+			if (mysql_query(conn, ("USE " + db).c_str()) != 0)
+			{
+				ErrMsg("Faiuled to USE " + db);
+				return EXIT_FAILURE;
+			}
+
+			mysql_query(
+				conn,
+				"CREATE TABLE `scores` (\r\n"
+				"   `stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\r\n"
+				"   `score` int unsigned NOT NULL,\r\n"
+				"   `duration` int unsigned NOT NULL,\r\n"
+				"   PRIMARY KEY(`stamp`)\r\n"
+				")"
+			);
+		}
+
+		/*
 		if (mysql_query(conn, "SHOW DATABASES") != 0)
 		{
-			fprintf(stderr, "Query Failure\n");
+			ErrMsg("Query Failure");
 			return EXIT_FAILURE;
 		}
 		MYSQL_RES* result = mysql_store_result(conn);
@@ -85,6 +151,7 @@ BOOL CTetrisDlg::OnInitDialog()
 
 			mysql_free_result(result);
 		}
+		*/
 
 		/*
 		if (mysql_query(conn, "INSERT INTO table_1 (test) VALUES ('Hello World')") != 0)
@@ -142,7 +209,7 @@ BOOL CTetrisDlg::OnInitDialog()
 
 	m_FontMedium.Detach();
 	m_FontMedium.CreateFont(24, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
-	GetDlgItem(IDC_HELP)->SetFont(&m_FontMedium, TRUE);
+	GetDlgItem(IDC_HELP_LABEL)->SetFont(&m_FontMedium, TRUE);
 
 	{
 		CTabCtrl* tabCtrl = (CTabCtrl*)GetDlgItem(IDC_TAB);
@@ -189,7 +256,7 @@ HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 	}
 
-	if (ID == IDC_HELP)
+	if (ID == IDC_HELP_LABEL)
 	{
 		pDC->SetTextColor(RGB(200, 200, 200));
 		pDC->SetBkMode(TRANSPARENT);
@@ -453,7 +520,7 @@ void CTetrisDlg::OnTcnSelchangeTab(NMHDR*, LRESULT* pResult)
 
 	GetDlgItem(IDC_GROUP_BOX)->ShowWindow(tab == 0);
 	GetDlgItem(IDC_SUMMARY)->ShowWindow(tab == 0);
-	GetDlgItem(IDC_HELP)->ShowWindow(tab == 0);
+	GetDlgItem(IDC_HELP_LABEL)->ShowWindow(tab == 0);
 
 	*pResult = 0;
 }

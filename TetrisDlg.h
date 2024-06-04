@@ -4,6 +4,7 @@
 
 #pragma once
 #include <set>
+#include "simpleini/SimpleIni.h"
 #include "Tetramino.h"
 
 // Диалоговое окно CTetrisDlg
@@ -49,6 +50,10 @@ protected:
 	int m_Score = 0;
 	int m_Duration = 0;
 
+	CSimpleIniA m_config;
+
+	//
+	void ErrMsg(const std::string& errmsg) const;
 	void Draw(const Point& point, bool a_Show);
 	void Draw(const Tetramino& tetramino, bool a_Show);
 	void Draw(Fallen_t fallen, bool a_Show);
