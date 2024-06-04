@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 #include <filesystem>
-#include <mysql.h> 
+#include "Db.h"
 #include "Tetris.h"
 #include "TetrisDlg.h"
 #include "afxdialogex.h"
@@ -80,91 +80,6 @@ BOOL CTetrisDlg::OnInitDialog()
 		assert(rc == SI_OK);
 	}
 
-	{
-		MYSQL* conn;
-
-		if ((conn = mysql_init(NULL)) == NULL)
-		{
-			fprintf(stderr, "Could not init DB\n");
-			return EXIT_FAILURE;
-		}
-
-		const std::string host = m_config.GetValue("mysql", "host", "localhost");
-		const std::string user = m_config.GetValue("mysql", "user", "");
-		const std::string pass = m_config.GetValue("mysql", "pass", "");
-		const std::string db   = m_config.GetValue("mysql", "db",   "tetris");
-
-		if (mysql_real_connect(conn, host.c_str(), user.c_str(), pass.c_str(), "mysql", 0, NULL, 0) == NULL)
-		{
-			ErrMsg("DB Connection Error");
-			return EXIT_FAILURE;
-		}
-		if (mysql_query(conn, ("USE " + db).c_str()) != 0)
-		{
-			if (mysql_query(conn, ("CREATE DATABASE " + db).c_str()) != 0)
-			{
-				ErrMsg("Failed to create database " + db);
-				return EXIT_FAILURE;
-			}
-			
-			if (mysql_query(conn, ("USE " + db).c_str()) != 0)
-			{
-				ErrMsg("Faiuled to USE " + db);
-				return EXIT_FAILURE;
-			}
-
-			mysql_query(
-				conn,
-				"CREATE TABLE `scores` (\r\n"
-				"   `stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\r\n"
-				"   `score` int unsigned NOT NULL,\r\n"
-				"   `duration` int unsigned NOT NULL,\r\n"
-				"   PRIMARY KEY(`stamp`)\r\n"
-				")"
-			);
-		}
-
-		/*
-		if (mysql_query(conn, "SHOW DATABASES") != 0)
-		{
-			ErrMsg("Query Failure");
-			return EXIT_FAILURE;
-		}
-		MYSQL_RES* result = mysql_store_result(conn);
-		if (result)  // there are rows
-		{
-			MYSQL_ROW row;
-			unsigned int num_fields;
-			unsigned int i;
-
-			num_fields = mysql_num_fields(result);
-			while ((row = mysql_fetch_row(result)))
-			{
-				unsigned long* lengths;
-				lengths = mysql_fetch_lengths(result);
-				for (i = 0; i < num_fields; i++)
-				{
-					OutputDebugStringA(row[i]);
-					OutputDebugStringA("\n");
-				}
-			}
-
-			mysql_free_result(result);
-		}
-		*/
-
-		/*
-		if (mysql_query(conn, "INSERT INTO table_1 (test) VALUES ('Hello World')") != 0)
-		{
-			fprintf(stderr, "Query Failure\n");
-			return EXIT_FAILURE;
-		}
-		*/
-		mysql_close(conn);
-		//return EXIT_SUCCESS;
-	}
-	////////////////////////////////
-
 	// Задает значок для этого диалогового окна.  Среда делает это автоматически,
 	//  если главное окно приложения не является диалоговым
 	SetIcon(m_hIcon, TRUE);			// Крупный значок
@@ -175,7 +90,7 @@ BOOL CTetrisDlg::OnInitDialog()
 	constexpr int size = 16;
 	constexpr int delta = 2;
 
-	CRect m_rec(45, 38, 52 + 10 * (size + delta), 52 + 20 * (size + delta));
+	CRect m_rec(30, 62, 37 + 10 * (size + delta), 76 + 20 * (size + delta));
 	m_GroupBox.Create(L"", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, m_rec,
 		this, IDC_GROUP_BOX);
 
@@ -208,8 +123,9 @@ BOOL CTetrisDlg::OnInitDialog()
 	GetDlgItem(IDC_SUMMARY)->SetFont(&m_FontBig, TRUE);
 
 	m_FontMedium.Detach();
-	m_FontMedium.CreateFont(24, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
+	m_FontMedium.CreateFont(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, 0, 0, 0, 0, 0, L"Tahoma");
 	GetDlgItem(IDC_HELP_LABEL)->SetFont(&m_FontMedium, TRUE);
+	GetDlgItem(IDC_LOG)->SetFont(&m_FontMedium, TRUE);
 
 	{
 		CTabCtrl* tabCtrl = (CTabCtrl*)GetDlgItem(IDC_TAB);
@@ -256,7 +172,7 @@ HBRUSH CTetrisDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 	}
 
-	if (ID == IDC_HELP_LABEL)
+	if (ID == IDC_HELP_LABEL || ID == IDC_LOG)
 	{
 		pDC->SetTextColor(RGB(200, 200, 200));
 		pDC->SetBkMode(TRANSPARENT);
@@ -461,6 +377,19 @@ void CTetrisDlg::OnTimerImpl()
 		if (!m_Tetramino.IsValid(*this))
 		{
 			m_State = State_t::GameOver;
+			try
+			{
+				Db db(m_config);
+				db.query(
+					"INSERT INTO `scores` (`score`, `duration`) VALUES(" +
+					std::to_string(m_Score) + ", " + std::to_string(m_Duration) +
+					")"
+				);
+			}
+			catch (const std::runtime_error& e)
+			{
+				ErrMsg(e.what());
+			}
 			return;
 		}
 		m_State = State_t::Fall;
@@ -521,6 +450,44 @@ void CTetrisDlg::OnTcnSelchangeTab(NMHDR*, LRESULT* pResult)
 	GetDlgItem(IDC_GROUP_BOX)->ShowWindow(tab == 0);
 	GetDlgItem(IDC_SUMMARY)->ShowWindow(tab == 0);
 	GetDlgItem(IDC_HELP_LABEL)->ShowWindow(tab == 0);
+	GetDlgItem(IDC_LOG)->ShowWindow(tab == 1);
+
+	if (tab == 1)
+	{
+		try
+		{
+			Db db(m_config);
+			db.query("SELECT * FROM `scores`");
+			MYSQL_RES* result = db.get_result();
+			std::string strRes;
+			if (result)
+			{
+				MYSQL_ROW row;
+				while ((row = mysql_fetch_row(result)))
+				{
+					strRes += "Logged: ";
+					strRes += row[0];
+
+					strRes += ", score: ";
+					strRes += std::to_string(std::stoi(row[1]) * 100);
+
+					const int duration = std::stoi(row[2]);
+					std::string sec = std::to_string(duration % 60);
+					if (sec.length() < 2)
+						sec = '0' + sec;
+					strRes += ", duration: " + std::to_string(duration / 60) + ':' + sec + '\n';
+				}
+				mysql_free_result(result);
+
+				const std::wstring wstr = std::wstring(strRes.begin(), strRes.end());
+				GetDlgItem(IDC_LOG)->SetWindowText(wstr.c_str());
+			}
+		}
+		catch (const std::runtime_error& e)
+		{
+			ErrMsg(e.what());
+		}
+	}
 
 	*pResult = 0;
 }
