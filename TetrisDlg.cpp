@@ -6,6 +6,7 @@
 #include "framework.h"
 #include <vector>
 #include <string>
+#include <mysql.h> 
 #include "Tetris.h"
 #include "TetrisDlg.h"
 #include "afxdialogex.h"
@@ -43,6 +44,59 @@ END_MESSAGE_MAP()
 BOOL CTetrisDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+
+	////////////////////////////////
+	{
+		MYSQL* conn;
+
+		if ((conn = mysql_init(NULL)) == NULL)
+		{
+			fprintf(stderr, "Could not init DB\n");
+			return EXIT_FAILURE;
+		}
+		if (mysql_real_connect(conn, "localhost", "root", "root123", "mysql", 0, NULL, 0) == NULL)
+		{
+			fprintf(stderr, "DB Connection Error\n");
+			return EXIT_FAILURE;
+		}
+		if (mysql_query(conn, "SHOW DATABASES") != 0)
+		{
+			fprintf(stderr, "Query Failure\n");
+			return EXIT_FAILURE;
+		}
+		MYSQL_RES* result = mysql_store_result(conn);
+		if (result)  // there are rows
+		{
+			MYSQL_ROW row;
+			unsigned int num_fields;
+			unsigned int i;
+
+			num_fields = mysql_num_fields(result);
+			while ((row = mysql_fetch_row(result)))
+			{
+				unsigned long* lengths;
+				lengths = mysql_fetch_lengths(result);
+				for (i = 0; i < num_fields; i++)
+				{
+					OutputDebugStringA(row[i]);
+					OutputDebugStringA("\n");
+				}
+			}
+
+			mysql_free_result(result);
+		}
+
+		/*
+		if (mysql_query(conn, "INSERT INTO table_1 (test) VALUES ('Hello World')") != 0)
+		{
+			fprintf(stderr, "Query Failure\n");
+			return EXIT_FAILURE;
+		}
+		*/
+		mysql_close(conn);
+		//return EXIT_SUCCESS;
+	}
+	////////////////////////////////
 
 	// Задает значок для этого диалогового окна.  Среда делает это автоматически,
 	//  если главное окно приложения не является диалоговым
